@@ -1,6 +1,8 @@
-# WhatsApp Bulk Group Adder
+# WhatsApp Automation Hub
 
-A web application that allows you to bulk-add phone numbers into any WhatsApp group where you are an admin, complete with anti-ban delay pacing and real-time logs.
+> **Developed by Sharief**
+
+A web application that allows you to bulk-add phone numbers into WhatsApp groups and send bulk broadcast messages, complete with anti-ban delay pacing and real-time logs.
 
 ---
 
