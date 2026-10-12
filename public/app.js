@@ -34,6 +34,18 @@ const messageBody = document.getElementById('messageBody');
 const sendBtn = document.getElementById('sendBtn');
 const stopSendBtn = document.getElementById('stopSendBtn');
 
+// Electron Auto-Updater notification handling
+if (window.electronAPI && window.electronAPI.onUpdateAvailable) {
+  window.electronAPI.onUpdateAvailable((version) => {
+    const banner = document.getElementById('updateBanner');
+    const bannerText = document.getElementById('updateBannerText');
+    if (banner && bannerText) {
+      bannerText.textContent = `A new version (v${version}) is available and is downloading in the background.`;
+      banner.classList.remove('d-none');
+    }
+  });
+}
+
 // Logger helper
 function appendLog(message, type = 'info') {
   const item = document.createElement('div');

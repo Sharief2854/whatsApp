@@ -416,8 +416,36 @@ io.on('connection', (socket) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Server listening on http://localhost:${PORT}`);
-  initWhatsAppClient();
-});
+function startServer(preferredPort = 3000) {
+  return new Promise((resolve, reject) => {
+    let port = preferredPort;
+
+    const tryListen = () => {
+      const s = server.listen(port, () => {
+        console.log(`Server listening on http://localhost:${port}`);
+        initWhatsAppClient();
+        resolve(port);
+      });
+
+      s.once('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+          console.warn(`Port ${port} in use, trying port ${port + 1}...`);
+          port++;
+          tryListen();
+        } else {
+          reject(err);
+        }
+      });
+    };
+
+    tryListen();
+  });
+}
+
+// If run directly via node server.js
+if (require.main === module) {
+  const defaultPort = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  startServer(defaultPort).catch(console.error);
+}
+
+module.exports = { startServer };

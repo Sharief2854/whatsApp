@@ -1,16 +1,44 @@
 {
-  "name": "whatsapp",
+  "name": "whatsapp-automation-hub",
   "version": "1.0.0",
-  "description": "",
-  "main": "server.js",
+  "description": "WhatsApp Automation Hub - Developed by Sharief",
+  "main": "electron-main.js",
   "scripts": {
     "start": "node server.js",
+    "app": "electron .",
+    "dist": "electron-builder --win",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "Sharief",
   "license": "ISC",
   "type": "commonjs",
+  "build": {
+    "appId": "com.sharief.whatsapphub",
+    "productName": "WhatsApp Automation Hub",
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "WhatsApp Automation Hub"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Sharief2854",
+        "repo": "whatsApp"
+      }
+    ],
+    "files": [
+      "**/*",
+      "!**/.wwebjs_auth/**/*",
+      "!**/.wwebjs_cache/**/*"
+    ]
+  },
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.3.0",
@@ -19,5 +47,10 @@
     "socket.io": "^4.8.4",
     "whatsapp-web.js": "^1.34.7",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
+    "electron-updater": "^6.8.9"
   }
 }
