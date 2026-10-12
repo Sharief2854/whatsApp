@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Toolkit | Bulk Adder & Sender</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    body {
+      background-color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .header-bar {
+      background: #008069;
+      color: white;
+      padding: 14px 24px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+    .card {
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .main-nav .nav-link {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #64748b;
+      padding: 12px 20px;
+      border: none;
+      border-bottom: 3px solid transparent;
+      border-radius: 0;
+    }
+    .main-nav .nav-link.active {
+      color: #008069;
+      background: transparent;
+      border-bottom: 3px solid #008069;
+    }
+    .main-nav .nav-link:hover:not(.active) {
+      color: #0f172a;
+    }
+    .log-box {
+      background: #0f172a;
+      color: #38bdf8;
+      font-family: 'Consolas', 'Courier New', Courier, monospace;
+      font-size: 0.85rem;
+      height: 280px;
+      overflow-y: auto;
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .log-item {
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+    #qrContainer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 230px;
+      background: #ffffff;
+      border-radius: 8px;
+      border: 2px dashed #cbd5e1;
+    }
+    #qrImage {
+      max-width: 200px;
+      display: none;
+    }
+    .group-checklist {
+      max-height: 220px;
+      overflow-y: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 12px;
+      background: #ffffff;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navbar Header -->
+  <div class="header-bar d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-whatsapp fs-3"></i>
+      <div>
+        <h5 class="m-0 fw-bold">WhatsApp Automation Hub</h5>
+        <small class="opacity-75">Safe Bulk Add to Group & Bulk Messaging</small>
+      </div>
+    </div>
+    <div id="connectionStatusBadge">
+      <span class="badge bg-secondary px-3 py-2"><i class="bi bi-hourglass-split"></i> Initializing...</span>
+    </div>
+  </div>
+
+  <div class="container-fluid py-4 px-4">
+    <div class="row g-4">
+      
+      <!-- Left Column: Session Controls -->
+      <div class="col-lg-3">
+        <div class="card p-3 mb-3">
+          <h6 class="fw-bold text-dark mb-3"><i class="bi bi-qr-code-scan text-success me-2"></i>Session Status</h6>
+          
+          <div id="qrContainer" class="p-3 text-center mb-3">
+            <div id="qrSpinner" class="spinner-border text-success spinner-border-sm" role="status"></div>
+            <p id="qrStatusText" class="mt-2 text-muted small mb-0">Connecting to WhatsApp Web...</p>
+            <img id="qrImage" alt="WhatsApp QR Code" class="img-fluid rounded">
+          </div>
+
+          <div class="d-grid gap-2">
+            <button id="refreshQrBtn" class="btn btn-outline-secondary btn-sm" onclick="restartSession()">
+              <i class="bi bi-arrow-clockwise"></i> Reconnect
+            </button>
+            <button id="logoutBtn" class="btn btn-outline-danger btn-sm" onclick="logoutSession()" disabled>
+              <i class="bi bi-box-arrow-right"></i> Logout WhatsApp
+            </button>
+          </div>
+        </div>
+
+        <div class="card p-3">
+          <h6 class="fw-bold text-dark mb-2"><i class="bi bi-shield-check text-primary me-2"></i>Account Safety Tips</h6>
+          <ul class="text-muted small ps-3 mb-0" style="line-height: 1.6;">
+            <li>Keep delays between <strong>8–15s</strong> when adding numbers.</li>
+            <li>Send messages in reasonable batches to avoid spam detection.</li>
+            <li>Make sure you are an Admin of groups you add people to.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Right Column: Navigation Tabs & Actions -->
+      <div class="col-lg-9">
+        
+        <!-- Navigation Pills -->
+        <ul class="nav main-nav border-bottom mb-3" id="mainTab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-add" data-bs-toggle="tab" data-bs-target="#pane-add" type="button" role="tab">
+              <i class="bi bi-person-plus-fill me-1 text-success"></i> Bulk Add to Group
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-msg" data-bs-toggle="tab" data-bs-target="#pane-msg" type="button" role="tab">
+              <i class="bi bi-chat-dots-fill me-1 text-primary"></i> Bulk Send Messages
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content" id="mainTabContent">
+          
+          <!-- TAB 1: BULK ADD TO GROUP -->
+          <div class="tab-pane fade show active" id="pane-add" role="tabpanel">
+            <div class="card p-4 mb-4">
+              <h5 class="fw-bold mb-3 text-dark">Add Bulk Numbers into a WhatsApp Group</h5>
+
+              <!-- Group Selector with Filter -->
+              <div class="row g-3 mb-3">
+                <div class="col-md-5">
+                  <label class="form-label small fw-semibold">1. Filter Group Name</label>
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" id="groupSearchInput" class="form-control" placeholder="Type to search group..." oninput="filterGroups()" disabled>
+                  </div>
+                </div>
+                <div class="col-md-7">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <label class="form-label small fw-semibold mb-0">2. Select Target Group</label>
+                    <button class="btn btn-link btn-sm p-0 text-decoration-none" onclick="fetchGroups()">
+                      <i class="bi bi-arrow-repeat"></i> Reload
+                    </button>
+                  </div>
+                  <select id="groupSelect" class="form-select form-select-sm mt-1" disabled>
+                    <option value="">-- Connect WhatsApp First --</option>
+                  </select>
+                  <small id="groupCountText" class="text-muted mt-1 d-block" style="font-size: 0.75rem;"></small>
+                </div>
+              </div>
+
+              <!-- Input Options -->
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">3. Input Phone Numbers</label>
+                <ul class="nav nav-pills nav-fill mb-2" id="addInputTabs" role="tablist">
+                  <li class="nav-item"><button class="nav-link active py-1 small" data-bs-toggle="pill" data-bs-target="#add-paste-pill" type="button">Paste Numbers</button></li>
+                  <li class="nav-item"><button class="nav-link py-1 small" data-bs-toggle="pill" data-bs-target="#add-file-pill" type="button">Upload Excel / CSV</button></li>
+                </ul>
+
+                <div class="tab-content">
+                  <div class="tab-pane fade show active" id="add-paste-pill">
+                    <textarea id="numbersTextArea" class="form-control" rows="4" placeholder="Enter phone numbers with country code (one per line or comma-separated)&#10;e.g.&#10;919876543210&#10;919876543211"></textarea>
+                  </div>
+                  <div class="tab-pane fade" id="add-file-pill">
+                    <input class="form-control" type="file" id="fileInput" accept=".csv, .xlsx, .xls">
+                    <small class="text-muted">Extracts numbers automatically from columns or headers.</small>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Settings -->
+              <div class="row g-3 bg-light p-3 rounded mb-3">
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold">Default Country Code</label>
+                  <input type="text" id="defaultCountryCode" class="form-control form-control-sm" value="91">
+                  <small class="text-muted" style="font-size: 0.75rem;">Prepended if not provided (e.g. 91)</small>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold">Delay Between Adds (Seconds)</label>
+                  <input type="number" id="delaySeconds" class="form-control form-control-sm" value="10" min="4" max="60">
+                  <small class="text-muted" style="font-size: 0.75rem;">Protects account from spam rate-limits</small>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="d-flex gap-2">
+                <button id="startBtn" class="btn btn-success flex-grow-1" onclick="startBulkAdd()" disabled>
+                  <i class="bi bi-play-fill me-1"></i> Start Adding Members
+                </button>
+                <button id="stopBtn" class="btn btn-danger" onclick="stopBulkAdd()" disabled>
+                  <i class="bi bi-stop-fill me-1"></i> Stop
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 2: BULK SEND MESSAGES -->
+          <div class="tab-pane fade" id="pane-msg" role="tabpanel">
+            <div class="card p-4 mb-4">
+              <h5 class="fw-bold mb-3 text-dark">Send Bulk Messages (to Groups or Numbers)</h5>
+
+              <!-- Mode Selection -->
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">1. Choose Recipient Type</label>
+                <div class="d-flex gap-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="msgTargetRadio" id="targetRadioNumbers" value="numbers" checked onchange="toggleMsgTargetType()">
+                    <label class="form-check-label fw-semibold" for="targetRadioNumbers">Individual Phone Numbers</label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="msgTargetRadio" id="targetRadioGroups" value="groups" onchange="toggleMsgTargetType()">
+                    <label class="form-check-label fw-semibold" for="targetRadioGroups">Multiple WhatsApp Groups</label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Section A: Numbers Input -->
+              <div id="msgNumbersSection" class="mb-3">
+                <label class="form-label small fw-semibold">2. Target Numbers</label>
+                <ul class="nav nav-pills nav-fill mb-2" role="tablist">
+                  <li class="nav-item"><button class="nav-link active py-1 small" data-bs-toggle="pill" data-bs-target="#msg-paste-pill" type="button">Paste Numbers</button></li>
+                  <li class="nav-item"><button class="nav-link py-1 small" data-bs-toggle="pill" data-bs-target="#msg-file-pill" type="button">Upload Excel / CSV</button></li>
+                </ul>
+                <div class="tab-content">
+                  <div class="tab-pane fade show active" id="msg-paste-pill">
+                    <textarea id="msgNumbersTextArea" class="form-control" rows="3" placeholder="Enter recipient numbers (e.g. 919876543210)"></textarea>
+                  </div>
+                  <div class="tab-pane fade" id="msg-file-pill">
+                    <input class="form-control" type="file" id="msgFileInput" accept=".csv, .xlsx, .xls">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Section B: Groups Checklist Input -->
+              <div id="msgGroupsSection" class="mb-3" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <label class="form-label small fw-semibold mb-0">2. Select Groups to Broadcast to</label>
+                  <div class="d-flex gap-2">
+                    <button class="btn btn-link btn-sm p-0 text-decoration-none" onclick="selectAllMsgGroups(true)">Select All</button>
+                    <span>|</span>
+                    <button class="btn btn-link btn-sm p-0 text-decoration-none" onclick="selectAllMsgGroups(false)">Deselect All</button>
+                  </div>
+                </div>
+                <div class="input-group input-group-sm mb-2">
+                  <span class="input-group-text"><i class="bi bi-search"></i></span>
+                  <input type="text" id="msgGroupSearch" class="form-control" placeholder="Search groups to broadcast..." oninput="filterMsgGroupChecklist()">
+                </div>
+                <div id="groupChecklist" class="group-checklist">
+                  <div class="text-muted small">Loading groups...</div>
+                </div>
+                <small id="selectedGroupsCount" class="text-primary mt-1 d-block" style="font-size: 0.75rem;">0 groups selected</small>
+              </div>
+
+              <!-- Message Text Box -->
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">3. Message Content</label>
+                <textarea id="messageBody" class="form-control" rows="4" placeholder="Type your message here..."></textarea>
+              </div>
+
+              <!-- Settings -->
+              <div class="row g-3 bg-light p-3 rounded mb-3">
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold">Default Country Code (for numbers)</label>
+                  <input type="text" id="msgDefaultCountryCode" class="form-control form-control-sm" value="91">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold">Delay Between Messages (Seconds)</label>
+                  <input type="number" id="msgDelaySeconds" class="form-control form-control-sm" value="6" min="3" max="60">
+                  <small class="text-muted" style="font-size: 0.75rem;">Prevents account flagging</small>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="d-flex gap-2">
+                <button id="sendBtn" class="btn btn-primary flex-grow-1" onclick="startBulkSend()" disabled>
+                  <i class="bi bi-send-fill me-1"></i> Send Bulk Message
+                </button>
+                <button id="stopSendBtn" class="btn btn-danger" onclick="stopBulkSend()" disabled>
+                  <i class="bi bi-stop-fill me-1"></i> Stop
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Progress Indicator -->
+        <div class="card p-3 mb-3">
+          <div class="d-flex justify-content-between small text-muted mb-1">
+            <span>Current Task Progress: <strong id="progressText">0 / 0</strong></span>
+            <span id="progressPercent">0%</span>
+          </div>
+          <div class="progress" style="height: 10px;">
+            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Live Activity Log -->
+        <div class="card p-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-bold m-0 text-dark"><i class="bi bi-terminal me-2"></i>Live Console Log</h6>
+            <button class="btn btn-outline-secondary btn-sm py-0" onclick="clearLogs()" style="font-size: 0.75rem;">Clear Log</button>
+          </div>
+          <div id="logBox" class="log-box">
+            <div class="log-item text-muted">[System] Ready. Scan QR code if not already connected.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
