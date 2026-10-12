@@ -15,9 +15,14 @@ app.use(express.static(path.join(__dirname, 'public')));
 let client = null;
 let isAddingActive = false;
 let shouldStopAdding = false;
+let latestQrDataUrl = null;
+let isClientReady = false;
 
 // Initialize WhatsApp Web Client
 function initWhatsAppClient() {
+  isClientReady = false;
+  latestQrDataUrl = null;
+
   if (client) {
     try {
       client.destroy();
@@ -52,34 +57,54 @@ function initWhatsAppClient() {
 
   client.on('qr', async (qr) => {
     try {
-      const qrDataUrl = await qrcode.toDataURL(qr);
-      io.emit('qr', qrDataUrl);
+      console.log('Received QR event from WhatsApp Web');
+      latestQrDataUrl = await qrcode.toDataURL(qr);
+      isClientReady = false;
+      io.emit('qr', latestQrDataUrl);
       io.emit('log', { message: 'New QR Code generated. Scan from your phone.', type: 'info' });
     } catch (err) {
       console.error('QR code generation error:', err);
     }
   });
 
+  client.on('loading_screen', (percent, message) => {
+    console.log(`Loading WhatsApp Web: ${percent}% - ${message}`);
+    io.emit('log', { message: `Loading session: ${percent}% - ${message}`, type: 'info' });
+  });
+
+  client.on('change_state', (state) => {
+    console.log('WhatsApp state changed:', state);
+    io.emit('log', { message: `State changed: ${state}`, type: 'info' });
+  });
+
   client.on('ready', () => {
     console.log('WhatsApp Web Client is ready!');
+    isClientReady = true;
+    latestQrDataUrl = null;
     io.emit('ready');
     io.emit('log', { message: 'WhatsApp session connected successfully!', type: 'success' });
   });
 
   client.on('authenticated', () => {
+    console.log('WhatsApp session authenticated');
     io.emit('log', { message: 'Session authenticated.', type: 'info' });
   });
 
   client.on('auth_failure', (msg) => {
+    console.error('WhatsApp Auth failure:', msg);
+    isClientReady = false;
     io.emit('disconnected', msg);
     io.emit('log', { message: `Authentication failure: ${msg}`, type: 'error' });
   });
 
   client.on('disconnected', (reason) => {
+    console.warn('WhatsApp Disconnected:', reason);
+    isClientReady = false;
     io.emit('disconnected', reason);
     io.emit('log', { message: `Disconnected: ${reason}`, type: 'error' });
   });
 
+  console.log('Starting client.initialize()...');
   client.initialize().catch((err) => {
     console.error('Initialization error:', err);
     io.emit('log', { message: `Client init error: ${err.message}`, type: 'error' });
@@ -375,10 +400,19 @@ app.post('/api/logout', async (req, res) => {
   }
 });
 
+app.get('/api/status', (req, res) => {
+  res.json({
+    connected: isClientReady,
+    hasQr: !!latestQrDataUrl,
+    qr: latestQrDataUrl
+  });
+});
+
 io.on('connection', (socket) => {
-  // If client is already ready when frontend reconnects
-  if (client && client.info) {
+  if (isClientReady) {
     socket.emit('ready');
+  } else if (latestQrDataUrl) {
+    socket.emit('qr', latestQrDataUrl);
   }
 });
 

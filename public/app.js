@@ -60,9 +60,42 @@ function clearLogs() {
 }
 
 // Socket Events
-socket.on('connect', () => {
+socket.on('connect', async () => {
   appendLog('Connected to backend server.', 'info');
+  // Check initial WhatsApp connection status
+  try {
+    const res = await fetch('/api/status');
+    const data = await res.json();
+    if (data.connected) {
+      setConnectedState();
+    } else if (data.hasQr && data.qr) {
+      setQrState(data.qr);
+    }
+  } catch (e) {
+    console.error('Failed to fetch initial status:', e);
+  }
 });
+
+function setConnectedState() {
+  isConnected = true;
+  qrImage.style.display = 'none';
+  qrSpinner.style.display = 'none';
+  qrStatusText.innerHTML = '<span class="text-success fw-bold"><i class="bi bi-check-circle-fill"></i> Connected!</span>';
+  connectionStatusBadge.innerHTML = '<span class="badge bg-success px-3 py-2"><i class="bi bi-check-circle"></i> Connected</span>';
+  logoutBtn.disabled = false;
+  disableActions(false);
+  fetchGroups();
+}
+
+function setQrState(url) {
+  qrImage.src = url;
+  qrImage.style.display = 'block';
+  qrSpinner.style.display = 'none';
+  qrStatusText.textContent = 'Scan QR code with WhatsApp';
+  connectionStatusBadge.innerHTML = '<span class="badge bg-warning text-dark px-3 py-2"><i class="bi bi-qr-code"></i> Scan QR Code</span>';
+  logoutBtn.disabled = true;
+  disableActions(true);
+}
 
 socket.on('qr', (url) => {
   qrImage.src = url;
